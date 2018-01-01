@@ -1,70 +1,103 @@
-// example.cpp
-#define EIGEN_USE_THREADS
-
 #include "tf_kernel.h"
 
-using namespace tensorflow;
+namespace PLUGIN_NAMESPACE {
 
-REGISTER_OP("InteractiveOp")
-    .Input("to_interactive: float")
-    .Output("interactivated: float")
-    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
-      c->set_output(0, c->input(0));
-      return Status::OK();
-    });
+	void setup_kernels()
+	{
+		REGISTER_OP("InteractiveNormalsInput")
+			.Input("interactive_input: float")
+			.Output("from_interactive: float")
+			.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+			c->set_output(0, c->input(0));
+			return TF::Status::OK();
+		});
 
-using CPUDevice = Eigen::ThreadPoolDevice;
-using GPUDevice = Eigen::GpuDevice;
+		REGISTER_OP("InteractiveDepthInput")
+			.Input("interactive_input: float")
+			.Output("from_interactive: float")
+			.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+			c->set_output(0, c->input(0));
+			return TF::Status::OK();
+		});
 
-// CPU specialization of actual computation.
-template <typename T>
-struct InteractiveFunctor<CPUDevice, T> {
-  void operator()(const CPUDevice& d, int size, const T* in, T* out) {
-    for (int i = 0; i < size; ++i) {
-      out[i] = 2 * in[i];
-    }
-  }
-};
+		REGISTER_OP("InteractiveOutput")
+			.Input("to_interactive: float")
+			.Output("interactive_output: float")
+			.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+			c->set_output(0, c->input(0));
+			return TF::Status::OK();
+		});
 
-// OpKernel definition.
-// template parameter <T> is the datatype of the tensors.
-template <typename Device, typename T>
-class InteractiveOp : public OpKernel {
- public:
-  explicit InteractiveOp(OpKernelConstruction* context) : OpKernel(context) {}
+		REGISTER_OP("InteractiveDepthOutput")
+			.Input("to_interactive: float")
+			.Output("interactive_output: float")
+			.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+			c->set_output(0, c->input(0));
+			return TF::Status::OK();
+		});
 
-  void Compute(OpKernelContext* context) override {
-    // Grab the input tensor
-    const Tensor& input_tensor = context->input(0);
+		REGISTER_OP("InteractiveDebugPrint")
+			.Input("to_print: float")
+			.Output("printed: float")
+			.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+			c->set_output(0, c->input(0));
+			return TF::Status::OK();
+		});
 
-    // Create an output tensor
-    Tensor* output_tensor = NULL;
-    OP_REQUIRES_OK(context, context->allocate_output(0, input_tensor.shape(),
-                                                     &output_tensor));
+		REGISTER_KERNEL_BUILDER(Name("InteractiveNormalsInput").Device(TF::DEVICE_GPU), InteractiveNormalsInputOp<Eigen::GpuDevice, float>);
+		REGISTER_KERNEL_BUILDER(Name("InteractiveDepthInput").Device(TF::DEVICE_GPU), InteractiveDepthInputOp<Eigen::GpuDevice, float>);
+		REGISTER_KERNEL_BUILDER(Name("InteractiveOutput").Device(TF::DEVICE_GPU), InteractiveOutputOp<Eigen::GpuDevice, float>);
+		REGISTER_KERNEL_BUILDER(Name("InteractiveDepthOutput").Device(TF::DEVICE_GPU), InteractiveDepthOutputOp<Eigen::GpuDevice, float>);
+		REGISTER_KERNEL_BUILDER(Name("InteractiveDebugPrint").Device(TF::DEVICE_CPU), InteractiveDebugPrintOp<Eigen::ThreadPoolDevice, float>);
+	}
+} // PLUGIN_NAMESPACE
 
-    // Do the computation.
-    OP_REQUIRES(context, input_tensor.NumElements() <= tensorflow::kint32max,
-                errors::InvalidArgument("Too many elements in tensor"));
-    InteractiveFunctor<Device, T>()(
-        context->eigen_device<Device>(),
-        static_cast<int>(input_tensor.NumElements()),
-        input_tensor.flat<T>().data(),
-        output_tensor->flat<T>().data());
-  }
-};
-
-// Register the CPU kernels.
-#define REGISTER_CPU(T)                                          \
-  REGISTER_KERNEL_BUILDER(                                       \
-      Name("Interactive").Device(DEVICE_CPU).TypeConstraint<T>("T"), \
-      InteractiveOp<CPUDevice, T>);
-REGISTER_CPU(float);
-
-// Register the GPU kernels.
 #ifdef GOOGLE_CUDA
-#define REGISTER_GPU(T)                                          \
-  REGISTER_KERNEL_BUILDER(                                       \
-      Name("Interactive").Device(DEVICE_GPU).TypeConstraint<T>("T"), \
-      InteractiveOp<GPUDevice, T>);
-REGISTER_GPU(float);
+
+REGISTER_OP("InteractiveNormalsInput")
+.Input("interactive_input: float")
+.Output("from_interactive: float")
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+	c->set_output(0, c->input(0));
+	return TF::Status::OK();
+});
+
+REGISTER_OP("InteractiveDepthInput")
+.Input("interactive_input: float")
+.Output("from_interactive: float")
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+	c->set_output(0, c->input(0));
+	return TF::Status::OK();
+});
+
+REGISTER_OP("InteractiveOutput")
+.Input("to_interactive: float")
+.Output("interactive_output: float")
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+	c->set_output(0, c->input(0));
+	return TF::Status::OK();
+});
+
+REGISTER_OP("InteractiveDepthOutput")
+.Input("to_interactive: float")
+.Output("interactive_output: float")
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+	c->set_output(0, c->input(0));
+	return TF::Status::OK();
+});
+
+REGISTER_OP("InteractiveDebugPrint")
+.Input("to_print: float")
+.Output("printed: float")
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+	c->set_output(0, c->input(0));
+	return TF::Status::OK();
+});
+
+REGISTER_KERNEL_BUILDER(Name("InteractiveNormalsInput").Device(TF::DEVICE_GPU), InteractiveNormalsInputOp<Eigen::GpuDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("InteractiveDepthInput").Device(TF::DEVICE_GPU), InteractiveDepthInputOp<Eigen::GpuDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("InteractiveOutput").Device(TF::DEVICE_GPU), InteractiveOutputOp<Eigen::GpuDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("InteractiveDepthOutput").Device(TF::DEVICE_GPU), InteractiveDepthOutputOp<Eigen::GpuDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("InteractiveDebugPrint").Device(TF::DEVICE_CPU), InteractiveDebugPrintOp<Eigen::ThreadPoolDevice, float>);
+
 #endif  // GOOGLE_CUDA
